@@ -1,6 +1,7 @@
 # modify-colors
 
-A GBDX task that modifies the colors of an RGB tif.
+A GBDX task that modifies the colors of an RGB tif. If the input tif is greyscale, it is automatically converted to RGB.
+The task also provides the option to render black pixels transparent by the addition of an alpha channel to the output tif.
 
 ## Run
 

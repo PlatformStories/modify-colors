@@ -17,11 +17,18 @@ class ModifyColors(GbdxTaskInterface):
             changes[pre] = post
 
         # Get transparency
-        transparency = bool(self.get_input_string_port('transparency', default='False'))
+        transparency = self.get_input_string_port('transparency', default='False')
+    	if transparency == 'True':
+    	    transparency = True
+    	elif transparency == 'False':
+    	    transparency = False
+    	else:
+    	    print 'Invalid transparency value!'
+    	    return 0
 
         # Get image filename; if there are multiple files, pick one arbitrarily
         image_dir = self.get_input_data_port('image')
-        filename = [os.path.join(dp, f) for dp, dn, fn in os.walk(input_dir) for f in fn if 'tif' in f][0]
+        filename = [os.path.join(dp, f) for dp, dn, fn in os.walk(image_dir) for f in fn if 'tif' in f][0]
         if filename is None:
             print 'Invalid filename!'
             return 0
@@ -35,9 +42,15 @@ class ModifyColors(GbdxTaskInterface):
         ds = gdal.Open(filename)
         gt = ds.GetGeoTransform()
         srs = ds.GetProjectionRef()
-        red = ds.GetRasterBand(1).ReadAsArray()
-        grn = ds.GetRasterBand(2).ReadAsArray()
-        blu = ds.GetRasterBand(3).ReadAsArray()
+        if ds.RasterCount >=3:
+            red = ds.GetRasterBand(1).ReadAsArray()
+            grn = ds.GetRasterBand(2).ReadAsArray()
+            blu = ds.GetRasterBand(3).ReadAsArray()
+        # if there is only one band, create three bands
+        elif ds.RasterCount == 1:
+            red = ds.GetRasterBand(1).ReadAsArray()
+            grn = ds.GetRasterBand(1).ReadAsArray()
+            blu = ds.GetRasterBand(1).ReadAsArray()
 
         print 'Change colors'
         for before in changes.keys():
@@ -47,7 +60,7 @@ class ModifyColors(GbdxTaskInterface):
             red[where], grn[where], blu[where] = ra, ga, ba
 
         print 'Write output image'
-        out_file = os.path.join(out_dir, 'output.tif')
+        out_file = os.path.join(self.out_dir, 'output.tif')
         if transparency:
             alf = np.bitwise_or(np.bitwise_or(red, grn), blu)
             ds = drv.Create(out_file, red.shape[1], red.shape[0], 4, options=['COMPRESS=LZW'])
@@ -65,10 +78,12 @@ class ModifyColors(GbdxTaskInterface):
 
         ds = None
 
+	return 1
+
 
 if __name__ == "__main__":
     with ModifyColors() as task:
         response = task.invoke()
 
     if response:
-        print 'Done!'
+	print 'Done!'
